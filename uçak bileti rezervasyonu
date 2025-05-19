@@ -1,0 +1,200 @@
+// Basit bir Uçak Bilet Rezervasyon Sistemi
+// Proje: Java OOP Final Ödevi
+
+import java.io.*;
+import java.util.*;
+
+// Ortak alanları taşıyan sınıf
+abstract class TemelNesne {
+    UUID id;
+    boolean aktif = true;
+
+    public TemelNesne() {
+        this.id = UUID.randomUUID();
+    }
+}
+
+// Uçak sınıfı
+class Ucak extends TemelNesne {
+    String model;
+    String marka;
+    String seriNo;
+    int kapasite;
+
+    public Ucak(String model, String marka, String seriNo, int kapasite) {
+        super();
+        this.model = model;
+        this.marka = marka;
+        this.seriNo = seriNo;
+        this.kapasite = kapasite;
+    }
+
+    public String toString() {
+        return marka + " " + model + " (" + seriNo + ") - Kapasite: " + kapasite;
+    }
+}
+
+// Lokasyon sınıfı
+class Lokasyon extends TemelNesne {
+    String ulke;
+    String sehir;
+    String havaalani;
+
+    public Lokasyon(String ulke, String sehir, String havaalani) {
+        super();
+        this.ulke = ulke;
+        this.sehir = sehir;
+        this.havaalani = havaalani;
+    }
+
+    public String toString() {
+        return havaalani + ", " + sehir + ", " + ulke;
+    }
+}
+
+// Uçuş sınıfı
+class Ucus extends TemelNesne {
+    Lokasyon nereden;
+    Lokasyon nereye;
+    String saat;
+    Ucak ucak;
+    int rezerveSayisi = 0;
+
+    public Ucus(Lokasyon nereden, Lokasyon nereye, String saat, Ucak ucak) {
+        super();
+        this.nereden = nereden;
+        this.nereye = nereye;
+        this.saat = saat;
+        this.ucak = ucak;
+    }
+
+    public String toString() {
+        return nereden + " -> " + nereye + ", Saat: " + saat + ", Uçak: " + ucak;
+    }
+}
+
+// Rezervasyon sınıfı
+class Rezervasyon extends TemelNesne {
+    Ucus ucus;
+    String ad;
+    String soyad;
+    int yas;
+
+    public Rezervasyon(Ucus ucus, String ad, String soyad, int yas) {
+        super();
+        this.ucus = ucus;
+        this.ad = ad;
+        this.soyad = soyad;
+        this.yas = yas;
+    }
+
+    public String toString() {
+        return ad + " " + soyad + " - Yaş: " + yas + " -> " + ucus;
+    }
+}
+
+// Ana uygulama
+public class UcakRezervasyonApp {
+    static List<Ucak> ucaklar = new ArrayList<>();
+    static List<Lokasyon> lokasyonlar = new ArrayList<>();
+    static List<Ucus> ucuslar = new ArrayList<>();
+    static List<Rezervasyon> rezervasyonlar = new ArrayList<>();
+    static Scanner input = new Scanner(System.in);
+
+    public static void main(String[] args) throws IOException {
+        veriGirisiHazirla();
+        while (true) {
+            System.out.println("\n--- Uçuş Sistemi ---");
+            System.out.println("1 - Uçuşları Göster");
+            System.out.println("2 - Rezervasyon Yap");
+            System.out.println("3 - Çıkış Yap ve Kaydet");
+            System.out.print("Seçiminiz: ");
+            int secim = input.nextInt();
+            input.nextLine();
+            if (secim == 1) ucuslariGoster();
+            else if (secim == 2) rezervasyonEkle();
+            else break;
+        }
+        dosyalariKaydet();
+    }
+
+    // Başlangıç verileri ekleniyor
+    static void veriGirisiHazirla() {
+        ucaklar.add(new Ucak("737", "Boeing", "B001", 5));
+        ucaklar.add(new Ucak("A320", "Airbus", "A320X", 4));
+
+        lokasyonlar.add(new Lokasyon("Türkiye", "İstanbul", "IST"));
+        lokasyonlar.add(new Lokasyon("Fransa", "Paris", "CDG"));
+
+        ucuslar.add(new Ucus(lokasyonlar.get(0), lokasyonlar.get(1), "08:30", ucaklar.get(0)));
+        ucuslar.add(new Ucus(lokasyonlar.get(1), lokasyonlar.get(0), "16:45", ucaklar.get(1)));
+    }
+
+    static void ucuslariGoster() {
+        System.out.println("\n--- Uçuşlar ---");
+        for (int i = 0; i < ucuslar.size(); i++) {
+            System.out.println((i + 1) + ". " + ucuslar.get(i));
+        }
+    }
+
+    static void rezervasyonEkle() {
+        ucuslariGoster();
+        System.out.print("Uçuş numarası: ");
+        int sec = input.nextInt();
+        input.nextLine();
+        if (sec < 1 || sec > ucuslar.size()) {
+            System.out.println("Hatalı seçim!");
+            return;
+        }
+        Ucus secilen = ucuslar.get(sec - 1);
+
+        if (secilen.rezerveSayisi >= secilen.ucak.kapasite) {
+            System.out.println("Maalesef bu uçuşta boş koltuk yok.");
+            return;
+        }
+
+        System.out.print("Ad: ");
+        String ad = input.nextLine();
+        System.out.print("Soyad: ");
+        String soyad = input.nextLine();
+        System.out.print("Yaş: ");
+        int yas = input.nextInt();
+        input.nextLine();
+
+        rezervasyonlar.add(new Rezervasyon(secilen, ad, soyad, yas));
+        secilen.rezerveSayisi++;
+
+        System.out.println("✔ Rezervasyon tamamlandı.");
+    }
+
+    static void dosyalariKaydet() throws IOException {
+        kaydetJson("rezervasyonlar.json", rezervasyonlar);
+        kaydetJson("ucaklar.json", ucaklar);
+        kaydetJson("lokasyonlar.json", lokasyonlar);
+        kaydetCSV("rezervasyonlar.csv", rezervasyonlar);
+        kaydetCSV("ucaklar.csv", ucaklar);
+        kaydetCSV("lokasyonlar.csv", lokasyonlar);
+
+        System.out.println("\n✓ Tüm veriler JSON ve CSV dosyalarına kaydedildi.\n");
+    }
+
+    static void kaydetJson(String dosyaAdi, List<?> liste) throws IOException {
+        FileWriter yaz = new FileWriter(dosyaAdi);
+        yaz.write("[\n");
+        for (int i = 0; i < liste.size(); i++) {
+            Object o = liste.get(i);
+            String jsonStr = o.toString().replace("\"", "");
+            yaz.write("  { \"veri\": \"" + jsonStr + "\" }" + (i < liste.size() - 1 ? ",\n" : "\n"));
+        }
+        yaz.write("]");
+        yaz.close();
+    }
+
+    static void kaydetCSV(String dosyaAdi, List<?> liste) throws IOException {
+        FileWriter yaz = new FileWriter(dosyaAdi);
+        for (Object o : liste) {
+            yaz.write(o.toString().replace(",", ";") + "\n");
+        }
+        yaz.close();
+    }
+}
